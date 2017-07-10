@@ -18,7 +18,27 @@ Pypsark_dist_explore has two ways of working: there are 3 functions to create ma
 
 * **pandas_histogram(x, bins=None, range=None)**. Creates histograms for all columns in x and converts this to a Pandas DataFrame
 
+## Installing:
+
+pyspark_dist_explore is not on PyPi yet, but you can install it easily by cloning from github:
+
+```
+git clone https://github.com/Bergvca/pyspark_dist_explore.git
+cd pyspark_dist_explore
+pip install .
+```
 ### Examples
+
+
+
+
+```python
+# Find and initialize spark
+import findspark
+findspark.init('/usr/lib/spark')
+
+```
+
 
 ```python
 import pyspark
@@ -53,7 +73,7 @@ list_male_female = list_male + list_female
 
 rdd = sc.parallelize(list_male_female)
 transactions = rdd.map(lambda x: Row(gender=x[0], amount=float(x[1]), age=float(x[2])))
-transactions_df = sqlContext.createDataFrame(transactions).cache()
+transactions_df = sqlContext.createDataFrame(transactions)
 
 ```
 
@@ -71,7 +91,7 @@ filtered_by_age_50_minus = transactions_df.filter(F.col('age') <= 50).select(F.c
 fig, axes = plt.subplots(nrows=2, ncols=2)
 fig.set_size_inches(20, 20)
 
-# Use the hist function to plot histograms on the axes
+# Use the hist function to plot histograms on the Axes
 hist(axes[0, 0], [filtered_by_gender_m, filtered_by_gender_f], bins = 20, color=['red', 'tan'])
 axes[0, 0].set_title('01. Compare Genders')
 axes[0, 0].legend()
@@ -80,6 +100,7 @@ hist(axes[0, 1], [filtered_by_age_50_plus, filtered_by_age_50_minus], overlappin
 axes[0, 1].set_title('02. Compare Age')
 axes[0, 1].legend()
 
+# Use the distplot function to plot (scaled) histograms + density plots on the Axes
 distplot(axes[1, 0], [filtered_by_gender_m, filtered_by_gender_f], bins=20)
 axes[1, 0].set_title('03. Compare distribution per gender')
 axes[1, 0].legend()
@@ -90,12 +111,14 @@ _ = axes[1, 1].legend()
 
 ```
 
-![png](README_files/README_5_1.png)
+
+![png](README_files/README_4_0.png)
 
 
 
 ```python
- compare_all_df = pandas_histogram([filtered_by_gender_m, 
+ # Convert Histograms of the 4 datasets to a pandas dataframe
+compare_all_df = pandas_histogram([filtered_by_gender_m, 
                                     filtered_by_gender_f, 
                                     filtered_by_age_50_plus, 
                                     filtered_by_age_50_minus], 
@@ -295,13 +318,14 @@ for age in range(0, 90, 10):
 fig, axes = plt.subplots(nrows=2)
 fig.set_size_inches(20, 10)    
 
-age_hist.plot_hist(axes[0]) # The Histogram is build here
+age_hist.plot_hist(axes[0], histtype='step', linewidth=2.0, fill=False, cumulative=True) # The Histogram is build here
 age_hist.plot_density(axes[1]) # The density plot is created from the already build histogram
 
 # Set the legends
-axes[0].legend()
+axes[0].legend(loc = 'upper left' )
+axes[0].set_title('Cumulative Histogram')
 axes[1].legend()
-
+axes[1].set_title('Kernel Density Plot')
 
 age_hist_pd_df = age_hist.to_pandas() # Again the histograms don't need to be recalculated. 
 
@@ -310,13 +334,13 @@ age_hist_pd_df = age_hist.to_pandas() # Again the histograms don't need to be re
 fig, axes = plt.subplots()
 fig.set_size_inches(10, 10)    
 ax = sns.heatmap(age_hist_pd_df, annot=True, ax=axes)
-
+_ = ax.set_title('Heatmap')
 ```
 
 
-![png](README_files/README_8_0.png)
+![png](README_files/README_7_0.png)
 
 
 
-![png](README_files/README_8_1.png)
+![png](README_files/README_7_1.png)
 
