@@ -4,9 +4,9 @@ ______________________________
 
 ## PySpark Dataframe Distribution Explorer 
 
-Pyspark_dist_explore is a plotting library to get quick insights on data in Spark DataFrames where the heavy lifting is done in Spark. 
+Pyspark_dist_explore is a plotting library to get quick insights on data in Spark DataFrames through histograms and density plots,  where the heavy lifting is done in Spark. 
 
-Pypsark_dist_explore has two ways of working: there are 3 plotting functions to create matplotlib graphs easily, and a class (Histogram) to do more advanced explorations while minimizing the amount of computation needed. 
+Pypsark_dist_explore has two ways of working: there are 3 functions to create matplotlib graphs or pandas dataframes easily, and a class (Histogram) to do more advanced explorations while minimizing the amount of computation needed. 
 
 ## Functions:
 * **hist(ax, x, \*\*kwargs)**. The *hist* function is almost exactly the same as the matplotlib hist function. See [here](https://matplotlib.org/examples/statistics/histogram_demo_multihist.html) for examples. The only two differences are:
@@ -71,6 +71,7 @@ filtered_by_age_50_minus = transactions_df.filter(F.col('age') <= 50).select(F.c
 fig, axes = plt.subplots(nrows=2, ncols=2)
 fig.set_size_inches(20, 20)
 
+# Use the hist function to plot histograms on the axes
 hist(axes[0, 0], [filtered_by_gender_m, filtered_by_gender_f], bins = 20, color=['red', 'tan'])
 axes[0, 0].set_title('01. Compare Genders')
 axes[0, 0].legend()
