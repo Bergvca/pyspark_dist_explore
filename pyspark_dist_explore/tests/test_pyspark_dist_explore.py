@@ -61,6 +61,16 @@ class HistogramTest(sparktestingbase.sqltestcase.SQLTestCase):
         with self.assertRaises(ValueError):
             hist.add_column(test_df)
 
+    def test_add_column_non_numeric(self):
+        """Should raise an ValueError if a non-numeric column is added"""
+        test_list = ['a', 'b']
+        rdd = self.sc.parallelize(test_list)
+        rdd_f = rdd.map(lambda x: Row(value=x))
+        spark_df = self.sqlCtx.createDataFrame(rdd_f)
+        hist = Histogram()
+        with self.assertRaises(ValueError):
+            hist.add_column(spark_df)
+
     def test_add_multiple_columns(self):
         """Adds new items to the col_list when new items are added"""
         hist = Histogram(bins=10)

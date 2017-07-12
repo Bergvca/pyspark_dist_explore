@@ -1,4 +1,5 @@
 from scipy.interpolate import spline
+from pyspark.sql.types import NumericType
 
 import pyspark.sql.functions as F
 import pandas as pd
@@ -78,7 +79,7 @@ class Histogram(object):
             self.max_value = range[1]
 
     def add_column(self, table):
-        """Add single column dataframe to the histogram object.
+        """Add single column DataFrame to the histogram object.
 
         If multiple columns share the same name, a (n) will be appended to the name, where n is
         the next available number.
@@ -88,8 +89,14 @@ class Histogram(object):
 
         """
         if len(table.columns) > 1:
-            raise ValueError('More then one column is being added')
+            raise ValueError('More then one column is being added, use add_data() to add multi-column DataFrames')
+
         column_name = table.columns[0]
+
+        if not isinstance(table.schema.fields[0].dataType, NumericType):
+            raise ValueError('Column %s has a non-numeric type (%s), only numeric types are supported'
+                             % (column_name, str(table.schema.fields[0].dataType)))
+
         self.col_list.append((table, column_name))
 
     def _get_bin_centers(self):
