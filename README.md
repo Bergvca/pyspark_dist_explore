@@ -19,8 +19,11 @@ Pypsark_dist_explore has two ways of working: there are 3 functions to create ma
 * **pandas_histogram(x, bins=None, range=None)**. Creates histograms for all columns in x and converts this to a Pandas DataFrame
 
 ## Installing:
+Install from PyPi:
 
-pyspark_dist_explore is not on PyPi yet, but you can install it easily by cloning from github:
+```pip install pyspark_dist_explore```
+
+Or directly from github:
 
 ```
 git clone https://github.com/Bergvca/pyspark_dist_explore.git
@@ -29,15 +32,6 @@ pip install .
 ```
 ### Examples
 
-
-
-
-```python
-# Find and initialize spark
-import findspark
-findspark.init('/usr/lib/spark')
-
-```
 
 
 ```python
@@ -57,14 +51,14 @@ sqlContext = pyspark.SQLContext(sc)
 %matplotlib inline
 ```
 
-
 ```python
 # Create some data in a Spark DataFrame:
+n_observations = 200
 
-random_dist_1 = np.random.logistic(100, 1000, 200)
-random_dist_2 = np.random.logistic(400, 500, 200)
-age_dist_1 = 20 * np.random.randn(200) + 40
-age_dist_2 = 15 * np.random.randn(200) + 30
+random_dist_1 = np.random.logistic(100, 1000, n_observations)
+random_dist_2 = np.random.logistic(400, 500, n_observations)
+age_dist_1 = 20 * np.random.randn(n_observations) + 40
+age_dist_2 = 15 * np.random.randn(n_observations) + 30
 
 list_male = [('M', rand_value, age_dist_1[i]) for i, rand_value in enumerate(random_dist_1)]
 list_female = [('F', rand_value, age_dist_2[i]) for i, rand_value in enumerate(random_dist_2)]
@@ -112,21 +106,40 @@ _ = axes[1, 1].legend()
 ```
 
 
-![png](README_files/README_4_0.png)
+![png](README_files/README_5_0.png)
 
 
 
 ```python
- # Convert Histograms of the 4 datasets to a pandas dataframe
+# Convert Histograms of the 4 datasets to a pandas dataframe
+
+# Put the outliers in seperate bins:
+bins = [-6000, -3000] + [bin_range for bin_range in range(-2500, 4000, 500)] + [6000]
+    
+    
 compare_all_df = pandas_histogram([filtered_by_gender_m, 
                                     filtered_by_gender_f, 
                                     filtered_by_age_50_plus, 
                                     filtered_by_age_50_minus], 
-                                   bins=20, range=(-4000, 4000))
+                                   bins=bins, range=(-4000, 4000))
 display(compare_all_df)
 ```
 
 
+<div>
+<style>
+    .dataframe thead tr:only-child th {
+        text-align: right;
+    }
+
+    .dataframe thead th {
+        text-align: left;
+    }
+
+    .dataframe tbody tr th {
+        vertical-align: top;
+    }
+</style>
 <table border="1" class="dataframe">
   <thead>
     <tr style="text-align: right;">
@@ -139,144 +152,109 @@ display(compare_all_df)
   </thead>
   <tbody>
     <tr>
-      <th>-4000.00 - -3600.00</th>
-      <td>0</td>
-      <td>0</td>
-      <td>0</td>
-      <td>0</td>
-    </tr>
-    <tr>
-      <th>-3600.00 - -3200.00</th>
-      <td>1</td>
-      <td>1</td>
-      <td>0</td>
-      <td>2</td>
-    </tr>
-    <tr>
-      <th>-3200.00 - -2800.00</th>
-      <td>1</td>
-      <td>1</td>
-      <td>0</td>
-      <td>2</td>
-    </tr>
-    <tr>
-      <th>-2800.00 - -2400.00</th>
-      <td>3</td>
-      <td>0</td>
-      <td>1</td>
-      <td>2</td>
-    </tr>
-    <tr>
-      <th>-2400.00 - -2000.00</th>
+      <th>-6000.00 - -3000.00</th>
       <td>4</td>
       <td>2</td>
-      <td>0</td>
-      <td>6</td>
-    </tr>
-    <tr>
-      <th>-2000.00 - -1600.00</th>
-      <td>4</td>
-      <td>3</td>
-      <td>0</td>
-      <td>7</td>
-    </tr>
-    <tr>
-      <th>-1600.00 - -1200.00</th>
-      <td>11</td>
-      <td>4</td>
-      <td>4</td>
-      <td>11</td>
-    </tr>
-    <tr>
-      <th>-1200.00 - -800.00</th>
-      <td>12</td>
-      <td>6</td>
-      <td>2</td>
-      <td>16</td>
-    </tr>
-    <tr>
-      <th>-800.00 - -400.00</th>
-      <td>28</td>
-      <td>9</td>
-      <td>13</td>
-      <td>24</td>
-    </tr>
-    <tr>
-      <th>-400.00 - 0.00</th>
-      <td>51</td>
-      <td>11</td>
-      <td>40</td>
-      <td>22</td>
-    </tr>
-    <tr>
-      <th>0.00 - 400.00</th>
-      <td>49</td>
-      <td>9</td>
-      <td>43</td>
-      <td>15</td>
-    </tr>
-    <tr>
-      <th>400.00 - 800.00</th>
-      <td>46</td>
-      <td>7</td>
-      <td>40</td>
-      <td>13</td>
-    </tr>
-    <tr>
-      <th>800.00 - 1200.00</th>
-      <td>31</td>
-      <td>6</td>
-      <td>24</td>
-      <td>13</td>
-    </tr>
-    <tr>
-      <th>1200.00 - 1600.00</th>
-      <td>25</td>
-      <td>4</td>
-      <td>12</td>
-      <td>17</td>
-    </tr>
-    <tr>
-      <th>1600.00 - 2000.00</th>
-      <td>17</td>
-      <td>3</td>
-      <td>8</td>
-      <td>12</td>
-    </tr>
-    <tr>
-      <th>2000.00 - 2400.00</th>
-      <td>9</td>
-      <td>4</td>
+      <td>1</td>
       <td>5</td>
-      <td>8</td>
     </tr>
     <tr>
-      <th>2400.00 - 2800.00</th>
-      <td>12</td>
+      <th>-3000.00 - -2500.00</th>
+      <td>4</td>
+      <td>2</td>
+      <td>0</td>
+      <td>6</td>
+    </tr>
+    <tr>
+      <th>-2500.00 - -2000.00</th>
+      <td>11</td>
       <td>3</td>
-      <td>5</td>
+      <td>1</td>
+      <td>13</td>
+    </tr>
+    <tr>
+      <th>-2000.00 - -1500.00</th>
       <td>10</td>
+      <td>5</td>
+      <td>4</td>
+      <td>11</td>
     </tr>
     <tr>
-      <th>2800.00 - 3200.00</th>
+      <th>-1500.00 - -1000.00</th>
+      <td>21</td>
       <td>6</td>
-      <td>2</td>
-      <td>2</td>
+      <td>9</td>
+      <td>18</td>
+    </tr>
+    <tr>
+      <th>-1000.00 - -500.00</th>
+      <td>32</td>
+      <td>9</td>
+      <td>16</td>
+      <td>25</td>
+    </tr>
+    <tr>
+      <th>-500.00 - 0.00</th>
+      <td>39</td>
+      <td>8</td>
+      <td>30</td>
+      <td>17</td>
+    </tr>
+    <tr>
+      <th>0.00 - 500.00</th>
+      <td>68</td>
+      <td>13</td>
+      <td>52</td>
+      <td>29</td>
+    </tr>
+    <tr>
+      <th>500.00 - 1000.00</th>
+      <td>46</td>
+      <td>17</td>
+      <td>43</td>
+      <td>20</td>
+    </tr>
+    <tr>
+      <th>1000.00 - 1500.00</th>
+      <td>29</td>
+      <td>4</td>
+      <td>22</td>
+      <td>11</td>
+    </tr>
+    <tr>
+      <th>1500.00 - 2000.00</th>
+      <td>24</td>
+      <td>9</td>
+      <td>13</td>
+      <td>20</td>
+    </tr>
+    <tr>
+      <th>2000.00 - 2500.00</th>
+      <td>10</td>
+      <td>5</td>
       <td>6</td>
+      <td>9</td>
     </tr>
     <tr>
-      <th>3200.00 - 3600.00</th>
+      <th>2500.00 - 3000.00</th>
       <td>4</td>
-      <td>1</td>
+      <td>3</td>
+      <td>2</td>
+      <td>5</td>
+    </tr>
+    <tr>
+      <th>3000.00 - 3500.00</th>
+      <td>5</td>
+      <td>0</td>
       <td>1</td>
       <td>4</td>
     </tr>
     <tr>
-      <th>3600.00 - 4000.00</th>
-      <td>4</td>
+      <th>3500.00 - 6000.00</th>
+      <td>2</td>
+      <td>3</td>
       <td>0</td>
-      <td>0</td>
-      <td>4</td>
+      <td>5</td>
     </tr>
   </tbody>
 </table>
@@ -322,11 +300,4 @@ fig.set_size_inches(10, 10)
 ax = sns.heatmap(age_hist_pd_df, annot=True, ax=axes)
 _ = ax.set_title('Heatmap')
 ```
-
-
-![png](README_files/README_7_0.png)
-
-
-
-![png](README_files/README_7_1.png)
 

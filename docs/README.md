@@ -19,8 +19,11 @@ Pypsark_dist_explore has two ways of working: there are 3 functions to create ma
 * **pandas_histogram(x, bins=None, range=None)**. Creates histograms for all columns in x and converts this to a Pandas DataFrame
 
 ## Installing:
+Install from PyPi:
 
-pyspark_dist_explore is not on PyPi yet, but you can install it easily by cloning from github:
+```pip install pyspark_dist_explore```
+
+Or directly from github:
 
 ```
 git clone https://github.com/Bergvca/pyspark_dist_explore.git
