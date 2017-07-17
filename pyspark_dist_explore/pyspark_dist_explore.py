@@ -101,6 +101,7 @@ class Histogram(object):
 
     def _get_bin_centers(self):
         result = []
+        print(self.bin_list)
         for i in range(len(self.bin_list)-1):
             result.append(((self.bin_list[i + 1] - self.bin_list[i]) / 2) + self.bin_list[i])
         return result
@@ -152,6 +153,9 @@ class Histogram(object):
         # Uses spark to calculate the hist values
         hist = table.select(column_name).rdd.flatMap(lambda x: x).histogram(self.bin_list)
         self.hist_dict[self._check_col_name(column_name)] = hist[1]
+
+        if isinstance(self.bin_list, int):
+            self.bin_list = hist[0]
 
     @staticmethod
     def _convert_number_bmk(axis_value, _):

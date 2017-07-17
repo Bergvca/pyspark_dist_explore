@@ -136,6 +136,16 @@ class HistogramTest(sparktestingbase.sqltestcase.SQLTestCase):
         self.assertEqual(1, len(hist.hist_dict))
         self.assertListEqual([1, 2], hist.hist_dict['value'])
 
+    def test_add_hist_single_column_sets_bin_list(self):
+        """Should set the bin list if this is a single number"""
+        hist = Histogram(bins=2)
+        test_df = self.create_test_df()
+        column_to_ad = test_df.select(F.col('value'))
+        hist.add_column(column_to_ad)
+        hist.bin_list = hist._calculate_bins()
+        hist._add_hist(column_to_ad, 'value')
+        self.assertEqual(3, len(hist.bin_list))
+
     def test_add_hist_multiple_column(self):
         """Should add a second list of bin values to the hist_dict"""
         hist = Histogram(bins=2)
