@@ -1,9 +1,0 @@
-setup.py
-PysparkDistExplore.egg-info/PKG-INFO
-PysparkDistExplore.egg-info/SOURCES.txt
-PysparkDistExplore.egg-info/dependency_links.txt
-PysparkDistExplore.egg-info/not-zip-safe
-PysparkDistExplore.egg-info/requires.txt
-PysparkDistExplore.egg-info/top_level.txt
-pyspark_dist_explore/__init__.py
-pyspark_dist_explore/pyspark_dist_explore.py
