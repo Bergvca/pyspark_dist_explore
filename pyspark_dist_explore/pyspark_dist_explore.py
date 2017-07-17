@@ -101,7 +101,6 @@ class Histogram(object):
 
     def _get_bin_centers(self):
         result = []
-        print(self.bin_list)
         for i in range(len(self.bin_list)-1):
             result.append(((self.bin_list[i + 1] - self.bin_list[i]) / 2) + self.bin_list[i])
         return result
@@ -238,8 +237,7 @@ class Histogram(object):
                         label=self.hist_dict.keys(),
                         weights=self.hist_dict[colname],
                         **kwargs
-                       )
-
+                        )
         else:
             weights_multi = [self.hist_dict[colname] for colname in self.hist_dict]
             return ax.hist([self._get_bin_centers()] * len(self.hist_dict),
