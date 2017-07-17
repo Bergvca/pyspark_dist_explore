@@ -153,6 +153,19 @@ class Histogram(object):
         hist = table.select(column_name).rdd.flatMap(lambda x: x).histogram(self.bin_list)
         self.hist_dict[self._check_col_name(column_name)] = hist[1]
 
+    @staticmethod
+    def _convert_number_bmk(axis_value, _):
+        """Converts the values on axes to Billions, Millions or Thousands"""
+        if axis_value >= 1e9:
+            return '{:1.1f}B'.format(axis_value * 1e-9)
+        if axis_value >= 1e6:
+            return '{:1.1f}M'.format(axis_value * 1e-6)
+        if axis_value >= 1e3:
+            return '{:1.1f}K'.format(axis_value * 1e-3)
+        if axis_value >= 1 or axis_value == 0:
+            return '{:1.0f}'.format(axis_value)
+        return axis_value
+
     def build(self):
         """Calculates the histogram values for each of the columns.
 
@@ -164,12 +177,12 @@ class Histogram(object):
                 self._add_hist(table, column_name)
             self.is_build = True
 
-    def _scale_list(self, list):
-        hist_sum = sum(list)
-        if hist_sum > 0:
-            return [float(bin) / float(hist_sum) for bin in list]
-        else:
-            return list
+    # def _scale_list(self, list):
+    #     hist_sum = sum(list)
+    #     if hist_sum > 0:
+    #         return [float(bin) / float(hist_sum) for bin in list]
+    #     else:
+    #         return list
 
     def to_pandas(self, kind='hist'):
         """Returns a pandas dataframe from the Histogram object.
@@ -191,7 +204,7 @@ class Histogram(object):
             result = pd.DataFrame(self.hist_dict).set_index([self._get_bin_centers()])
             return result.apply(lambda x: x / x.max(), axis=0)
 
-    def plot_hist(self, ax, overlapping=False, **kwargs):
+    def plot_hist(self, ax, overlapping=False, formatted_yaxis=True, **kwargs):
         """Returns a matplotlib style histogram (matplotlib.pyplot.hist)
 
         Uses the matplotlib object oriented interface to add a Histogram to an matplotlib Axes object.
@@ -202,9 +215,16 @@ class Histogram(object):
             ax (:obj:`Axes`): An matplotlib Axes object on which the histogram will be plot
             overlapping (:obj:`bool`, optional): If set to true, this will generate an overlapping plot.
             When set to False it will generate a normal grouped histogram. Defaults to False.
+            formatted_yaxis (:obj:`bool`, optional). If set to true, the numbers on the yaxis will be formatted
+            for better readability. E.g. 1500000 will become 1.5M. Defaults to True
             **kwargs: The keyword arguments as used in matplotlib.pyplot.hist
         """
         self.build()
+
+        if formatted_yaxis:
+            # Round the y-axis value to nearest thousand, million, or billion for readable y-axis
+            formatter = plt.FuncFormatter(Histogram._convert_number_bmk)
+            ax.yaxis.set_major_formatter(formatter)
 
         if overlapping:
             for colname in self.hist_dict:
