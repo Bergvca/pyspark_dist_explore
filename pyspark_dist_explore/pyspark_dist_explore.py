@@ -191,7 +191,7 @@ class Histogram(object):
             result = pd.DataFrame(self.hist_dict).set_index([self._get_bin_centers()])
             return result.apply(lambda x: x / x.max(), axis=0)
 
-    def plot_hist(self, ax, **kwargs):
+    def plot_hist(self, ax, overlapping=False, **kwargs):
         """Returns a matplotlib style histogram (matplotlib.pyplot.hist)
 
         Uses the matplotlib object oriented interface to add a Histogram to an matplotlib Axes object.
@@ -204,20 +204,18 @@ class Histogram(object):
             When set to False it will generate a normal grouped histogram. Defaults to False.
             **kwargs: The keyword arguments as used in matplotlib.pyplot.hist
         """
-
         self.build()
-        if 'overlapping' in kwargs:
-            if kwargs['overlapping'] is True:
 
-                del kwargs['overlapping']
-                for colname in self.hist_dict:
-                    ax.hist(self._get_bin_centers(),
-                            bins=self.bin_list,
-                            alpha=0.5,
-                            label=self.hist_dict.keys(),
-                            weights=self.hist_dict[colname],
-                            **kwargs
-                           )
+        if overlapping:
+            for colname in self.hist_dict:
+                ax.hist(self._get_bin_centers(),
+                        bins=self.bin_list,
+                        alpha=0.5,
+                        label=self.hist_dict.keys(),
+                        weights=self.hist_dict[colname],
+                        **kwargs
+                       )
+
         else:
             weights_multi = [self.hist_dict[colname] for colname in self.hist_dict]
             return ax.hist([self._get_bin_centers()] * len(self.hist_dict),
