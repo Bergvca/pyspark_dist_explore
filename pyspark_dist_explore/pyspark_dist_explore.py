@@ -11,7 +11,7 @@ import matplotlib.pyplot as plt
 def hist(axis, x, **kwargs):
     histogram = create_histogram_object(kwargs)
     histogram.add_data(x)
-    histogram.plot_hist(axis, **kwargs)
+    return histogram.plot_hist(axis, **kwargs)
 
 
 def distplot(axis, x, **kwargs):
