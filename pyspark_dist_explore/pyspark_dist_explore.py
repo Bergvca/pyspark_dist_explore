@@ -8,10 +8,10 @@ import numpy as np
 import matplotlib.pyplot as plt
 
 
-def hist(axis, x, **kwargs):
+def hist(axis, x, overlapping=False, formatted_yaxis=True, **kwargs):
     histogram = create_histogram_object(kwargs)
     histogram.add_data(x)
-    return histogram.plot_hist(axis, **kwargs)
+    return histogram.plot_hist(axis, overlapping, formatted_yaxis, **kwargs)
 
 
 def distplot(axis, x, **kwargs):
@@ -179,13 +179,6 @@ class Histogram(object):
             for table, column_name in self.col_list:
                 self._add_hist(table, column_name)
             self.is_build = True
-
-    # def _scale_list(self, list):
-    #     hist_sum = sum(list)
-    #     if hist_sum > 0:
-    #         return [float(bin) / float(hist_sum) for bin in list]
-    #     else:
-    #         return list
 
     def to_pandas(self, kind='hist'):
         """Returns a pandas dataframe from the Histogram object.
