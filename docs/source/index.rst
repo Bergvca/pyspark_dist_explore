@@ -22,5 +22,7 @@ Indices and tables
 
 Documentation for the Code
 **************************
-.. automodule:: pyspark_histogram.pyspark_histogram
+.. automodule:: pyspark_dist_explore
    :members:
+
+.. autoclass:: Histogram

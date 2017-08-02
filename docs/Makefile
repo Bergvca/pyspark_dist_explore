@@ -4,7 +4,7 @@
 # You can set these variables from the command line.
 SPHINXOPTS    =
 SPHINXBUILD   = python -msphinx
-SPHINXPROJ    = pyspark_histogram
+SPHINXPROJ    = pyspark_dist_explore
 SOURCEDIR     = source
 BUILDDIR      = build
 

@@ -163,5 +163,5 @@ texinfo_documents = [
 intersphinx_mapping = {'https://docs.python.org/': None}
 
 import sys
-sys.path.append("/home/chris/gp300/PysparkDistExplore")
-
+import os
+sys.path.append(os.path.abspath('../../'))

@@ -1,7 +1,12 @@
 from scipy.interpolate import spline
-from pyspark.sql.types import NumericType
 
-import pyspark.sql.functions as F
+try:
+    from pyspark.sql.types import NumericType
+
+    import pyspark.sql.functions as F
+except:
+    pass
+
 import pandas as pd
 import numpy as np
 
@@ -9,12 +14,25 @@ import matplotlib.pyplot as plt
 
 
 def hist(axis, x, overlapping=False, formatted_yaxis=True, **kwargs):
+    """Plots a histogram on an Axis object
+
+    Args:
+        axis (:obj:`Axes`): An matplotlib Axes object on which the histogram will be plot
+        x (:obj:`DataFrame` or `list` of :obj:`DataFrame`): A DataFrame with one or more numerical columns,
+        or a list of single numerical column DataFrames
+        overlapping (:obj:`bool`, optional): If set to true, this will generate an overlapping plot.
+        When set to False it will generate a normal grouped histogram. Defaults to False.
+        formatted_yaxis (:obj:`bool`, optional). If set to true, the numbers on the yaxis will be formatted
+        for better readability. E.g. 1500000 will become 1.5M. Defaults to True
+        **kwargs: The keyword arguments as used in matplotlib.pyplot.hist
+    """
     histogram = create_histogram_object(kwargs)
     histogram.add_data(x)
     return histogram.plot_hist(axis, overlapping, formatted_yaxis, **kwargs)
 
 
 def distplot(axis, x, **kwargs):
+    """test"""
     histogram = create_histogram_object(kwargs)
     histogram.add_data(x)
     _, _, patches = histogram.plot_hist(axis, normed=True, **kwargs)
@@ -47,26 +65,24 @@ class Histogram(object):
     """The Histogram object leverages Spark to calculate histograms, and matplotlib to visualize these.
 
     Args:
-        range: (:obj: `tuple`, optional): The lower and upper range of the bins.
+        range: (`tuple`, optional): The lower and upper range of the bins.
             Lower and upper outliers are ignored. If not provided, range is (min(x), max(x)). Range has no
             effect if bins is a sequence. If bins is a sequence or range is specified, autoscaling is
             based on the specified bin range instead of the range of x.
-        bins ((:obj:int or `list` of :obj:`str` or `list of :obj:`int`, optional):
+        bins (`int` or `list` of `str` or `list of `int`, optional):
             If an integer is given: Number of bins in the histogram. Defaults to 10.
             If a list is given: Predefined list of bin boundaries.
             The bins are all open to the right except for the last which is closed. e.g. [1,10,20,50] means
             the buckets are [1,10) [10,20) [20,50], which means 1<=x<10, 10<=x<20, 20<=x<=50.
 
     """
-    def __init__(self, bins=10, range=None, use_log10=False):
-        # todo: fix use_log10
+    def __init__(self, bins=10, range=None):
         self.col_list = []
         self.bin_list = []
         self.hist_dict = {}
         self.nr_bins = None
         self.min_value = None
         self.max_value = None
-        self.useLog10 = use_log10
         self.is_build = False
 
         if isinstance(bins, list):
@@ -108,10 +124,7 @@ class Histogram(object):
     def _get_col_names(self):
         new_col_names = []
         for i in range(len(self.bin_list) - 1):
-            if self.useLog10:
-                new_col_names.append('%.2f - %.2f' % (pow(10, self.bin_list[i]), (pow(10, self.bin_list[i + 1]))))
-            else:
-                new_col_names.append('%.2f - %.2f' % (self.bin_list[i], self.bin_list[i + 1]))
+            new_col_names.append('%.2f - %.2f' % (self.bin_list[i], self.bin_list[i + 1]))
         return new_col_names
 
     def _check_col_name(self, column_name):

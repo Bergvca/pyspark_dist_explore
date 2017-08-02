@@ -1,0 +1,408 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN"
+  "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+
+
+<html xmlns="http://www.w3.org/1999/xhtml">
+  <head>
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+    
+    <title>pyspark_dist_explore.pyspark_dist_explore &#8212; pyspark_dist_explore 0.1.0 documentation</title>
+    
+    <link rel="stylesheet" href="../../_static/alabaster.css" type="text/css" />
+    <link rel="stylesheet" href="../../_static/pygments.css" type="text/css" />
+    
+    <script type="text/javascript">
+      var DOCUMENTATION_OPTIONS = {
+        URL_ROOT:    '../../',
+        VERSION:     '0.1.0',
+        COLLAPSE_INDEX: false,
+        FILE_SUFFIX: '.html',
+        HAS_SOURCE:  true,
+        SOURCELINK_SUFFIX: '.txt'
+      };
+    </script>
+    <script type="text/javascript" src="../../_static/jquery.js"></script>
+    <script type="text/javascript" src="../../_static/underscore.js"></script>
+    <script type="text/javascript" src="../../_static/doctools.js"></script>
+    <link rel="index" title="Index" href="../../genindex.html" />
+    <link rel="search" title="Search" href="../../search.html" />
+   
+  <link rel="stylesheet" href="../../_static/custom.css" type="text/css" />
+  
+  
+  <meta name="viewport" content="width=device-width, initial-scale=0.9, maximum-scale=0.9" />
+
+  </head>
+  <body role="document">
+  
+
+    <div class="document">
+      <div class="documentwrapper">
+        <div class="bodywrapper">
+          <div class="body" role="main">
+            
+  <h1>Source code for pyspark_dist_explore.pyspark_dist_explore</h1><div class="highlight"><pre>
+<span></span><span class="kn">from</span> <span class="nn">scipy.interpolate</span> <span class="k">import</span> <span class="n">spline</span>
+
+<span class="k">try</span><span class="p">:</span>
+    <span class="kn">from</span> <span class="nn">pyspark.sql.types</span> <span class="k">import</span> <span class="n">NumericType</span>
+
+    <span class="kn">import</span> <span class="nn">pyspark.sql.functions</span> <span class="k">as</span> <span class="nn">F</span>
+<span class="k">except</span><span class="p">:</span>
+    <span class="k">pass</span>
+
+<span class="kn">import</span> <span class="nn">pandas</span> <span class="k">as</span> <span class="nn">pd</span>
+<span class="kn">import</span> <span class="nn">numpy</span> <span class="k">as</span> <span class="nn">np</span>
+
+<span class="kn">import</span> <span class="nn">matplotlib.pyplot</span> <span class="k">as</span> <span class="nn">plt</span>
+
+
+<span class="k">def</span> <span class="nf">hist</span><span class="p">(</span><span class="n">axis</span><span class="p">,</span> <span class="n">x</span><span class="p">,</span> <span class="n">overlapping</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span> <span class="n">formatted_yaxis</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Plots a histogram on an Axis object</span>
+
+<span class="sd">    Args:</span>
+<span class="sd">        axis (:obj:`Axes`): An matplotlib Axes object on which the histogram will be plot</span>
+<span class="sd">        x (:obj:`DataFrame` or `list` of :obj:`DataFrame`): A DataFrame with one or more numerical columns,</span>
+<span class="sd">        or a list of single numerical column DataFrames</span>
+<span class="sd">        overlapping (:obj:`bool`, optional): If set to true, this will generate an overlapping plot.</span>
+<span class="sd">        When set to False it will generate a normal grouped histogram. Defaults to False.</span>
+<span class="sd">        formatted_yaxis (:obj:`bool`, optional). If set to true, the numbers on the yaxis will be formatted</span>
+<span class="sd">        for better readability. E.g. 1500000 will become 1.5M. Defaults to True</span>
+<span class="sd">        **kwargs: The keyword arguments as used in matplotlib.pyplot.hist</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">histogram</span> <span class="o">=</span> <span class="n">create_histogram_object</span><span class="p">(</span><span class="n">kwargs</span><span class="p">)</span>
+    <span class="n">histogram</span><span class="o">.</span><span class="n">add_data</span><span class="p">(</span><span class="n">x</span><span class="p">)</span>
+    <span class="k">return</span> <span class="n">histogram</span><span class="o">.</span><span class="n">plot_hist</span><span class="p">(</span><span class="n">axis</span><span class="p">,</span> <span class="n">overlapping</span><span class="p">,</span> <span class="n">formatted_yaxis</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span>
+
+
+<span class="k">def</span> <span class="nf">distplot</span><span class="p">(</span><span class="n">axis</span><span class="p">,</span> <span class="n">x</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;test&quot;&quot;&quot;</span>
+    <span class="n">histogram</span> <span class="o">=</span> <span class="n">create_histogram_object</span><span class="p">(</span><span class="n">kwargs</span><span class="p">)</span>
+    <span class="n">histogram</span><span class="o">.</span><span class="n">add_data</span><span class="p">(</span><span class="n">x</span><span class="p">)</span>
+    <span class="n">_</span><span class="p">,</span> <span class="n">_</span><span class="p">,</span> <span class="n">patches</span> <span class="o">=</span> <span class="n">histogram</span><span class="o">.</span><span class="n">plot_hist</span><span class="p">(</span><span class="n">axis</span><span class="p">,</span> <span class="n">normed</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span>
+    <span class="n">colors</span> <span class="o">=</span> <span class="p">[</span><span class="n">patch</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">get_facecolor</span><span class="p">()</span> <span class="k">for</span> <span class="n">patch</span> <span class="ow">in</span> <span class="n">patches</span><span class="p">]</span>
+    <span class="n">histogram</span><span class="o">.</span><span class="n">plot_density</span><span class="p">(</span><span class="n">axis</span><span class="p">,</span> <span class="n">color</span><span class="o">=</span><span class="n">colors</span><span class="p">)</span>
+
+
+<span class="k">def</span> <span class="nf">pandas_histogram</span><span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="n">bins</span><span class="o">=</span><span class="mi">10</span><span class="p">,</span> <span class="nb">range</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+    <span class="n">histogram</span> <span class="o">=</span> <span class="n">Histogram</span><span class="p">(</span><span class="n">bins</span><span class="o">=</span><span class="n">bins</span><span class="p">,</span> <span class="nb">range</span><span class="o">=</span><span class="nb">range</span><span class="p">)</span>
+    <span class="n">histogram</span><span class="o">.</span><span class="n">add_data</span><span class="p">(</span><span class="n">x</span><span class="p">)</span>
+    <span class="k">return</span> <span class="n">histogram</span><span class="o">.</span><span class="n">to_pandas</span><span class="p">()</span>
+
+
+<span class="k">def</span> <span class="nf">create_histogram_object</span><span class="p">(</span><span class="n">kwargs</span><span class="p">):</span>
+    <span class="n">bins</span> <span class="o">=</span> <span class="mi">10</span>
+    <span class="nb">range</span> <span class="o">=</span> <span class="kc">None</span>
+
+    <span class="k">if</span> <span class="s1">&#39;bins&#39;</span> <span class="ow">in</span> <span class="n">kwargs</span><span class="p">:</span>
+        <span class="n">bins</span> <span class="o">=</span> <span class="n">kwargs</span><span class="p">[</span><span class="s1">&#39;bins&#39;</span><span class="p">]</span>
+        <span class="k">del</span> <span class="n">kwargs</span><span class="p">[</span><span class="s1">&#39;bins&#39;</span><span class="p">]</span>
+
+    <span class="k">if</span> <span class="s1">&#39;range&#39;</span> <span class="ow">in</span> <span class="n">kwargs</span><span class="p">:</span>
+        <span class="nb">range</span> <span class="o">=</span> <span class="n">kwargs</span><span class="p">[</span><span class="s1">&#39;range&#39;</span><span class="p">]</span>
+        <span class="k">del</span> <span class="n">kwargs</span><span class="p">[</span><span class="nb">range</span><span class="p">]</span>
+
+    <span class="k">return</span> <span class="n">Histogram</span><span class="p">(</span><span class="n">bins</span><span class="o">=</span><span class="n">bins</span><span class="p">,</span> <span class="nb">range</span><span class="o">=</span><span class="nb">range</span><span class="p">)</span>
+
+
+<div class="viewcode-block" id="Histogram"><a class="viewcode-back" href="../../index.html#pyspark_dist_explore.Histogram">[docs]</a><span class="k">class</span> <span class="nc">Histogram</span><span class="p">(</span><span class="nb">object</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;The Histogram object leverages Spark to calculate histograms, and matplotlib to visualize these.</span>
+
+<span class="sd">    Args:</span>
+<span class="sd">        range: (`tuple`, optional): The lower and upper range of the bins.</span>
+<span class="sd">            Lower and upper outliers are ignored. If not provided, range is (min(x), max(x)). Range has no</span>
+<span class="sd">            effect if bins is a sequence. If bins is a sequence or range is specified, autoscaling is</span>
+<span class="sd">            based on the specified bin range instead of the range of x.</span>
+<span class="sd">        bins (`int` or `list` of `str` or `list of `int`, optional):</span>
+<span class="sd">            If an integer is given: Number of bins in the histogram. Defaults to 10.</span>
+<span class="sd">            If a list is given: Predefined list of bin boundaries.</span>
+<span class="sd">            The bins are all open to the right except for the last which is closed. e.g. [1,10,20,50] means</span>
+<span class="sd">            the buckets are [1,10) [10,20) [20,50], which means 1&lt;=x&lt;10, 10&lt;=x&lt;20, 20&lt;=x&lt;=50.</span>
+
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="k">def</span> <span class="nf">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">bins</span><span class="o">=</span><span class="mi">10</span><span class="p">,</span> <span class="nb">range</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">use_log10</span><span class="o">=</span><span class="kc">False</span><span class="p">):</span>
+        <span class="c1"># todo: fix use_log10</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">col_list</span> <span class="o">=</span> <span class="p">[]</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">bin_list</span> <span class="o">=</span> <span class="p">[]</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">hist_dict</span> <span class="o">=</span> <span class="p">{}</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">nr_bins</span> <span class="o">=</span> <span class="kc">None</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">min_value</span> <span class="o">=</span> <span class="kc">None</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">max_value</span> <span class="o">=</span> <span class="kc">None</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">useLog10</span> <span class="o">=</span> <span class="n">use_log10</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">is_build</span> <span class="o">=</span> <span class="kc">False</span>
+
+        <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">bins</span><span class="p">,</span> <span class="nb">list</span><span class="p">):</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">bin_list</span> <span class="o">=</span> <span class="p">[</span><span class="nb">float</span><span class="p">(</span><span class="n">bin_border</span><span class="p">)</span> <span class="k">for</span> <span class="n">bin_border</span> <span class="ow">in</span> <span class="n">bins</span><span class="p">]</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">nr_bins</span> <span class="o">=</span> <span class="n">bins</span>
+
+        <span class="k">if</span> <span class="nb">range</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">min_value</span> <span class="o">=</span> <span class="nb">range</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">max_value</span> <span class="o">=</span> <span class="nb">range</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span>
+
+    <span class="k">def</span> <span class="nf">add_column</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">table</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;Add single column DataFrame to the histogram object.</span>
+
+<span class="sd">        If multiple columns share the same name, a (n) will be appended to the name, where n is</span>
+<span class="sd">        the next available number.</span>
+
+<span class="sd">        Args:</span>
+<span class="sd">            table (:obj:`dataframe`): A pyspark dataframe with a single column</span>
+
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">table</span><span class="o">.</span><span class="n">columns</span><span class="p">)</span> <span class="o">&gt;</span> <span class="mi">1</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s1">&#39;More then one column is being added, use add_data() to add multi-column DataFrames&#39;</span><span class="p">)</span>
+
+        <span class="n">column_name</span> <span class="o">=</span> <span class="n">table</span><span class="o">.</span><span class="n">columns</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
+
+        <span class="k">if</span> <span class="ow">not</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">table</span><span class="o">.</span><span class="n">schema</span><span class="o">.</span><span class="n">fields</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">dataType</span><span class="p">,</span> <span class="n">NumericType</span><span class="p">):</span>
+            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s1">&#39;Column </span><span class="si">%s</span><span class="s1"> has a non-numeric type (</span><span class="si">%s</span><span class="s1">), only numeric types are supported&#39;</span>
+                             <span class="o">%</span> <span class="p">(</span><span class="n">column_name</span><span class="p">,</span> <span class="nb">str</span><span class="p">(</span><span class="n">table</span><span class="o">.</span><span class="n">schema</span><span class="o">.</span><span class="n">fields</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">dataType</span><span class="p">)))</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">col_list</span><span class="o">.</span><span class="n">append</span><span class="p">((</span><span class="n">table</span><span class="p">,</span> <span class="n">column_name</span><span class="p">))</span>
+
+    <span class="k">def</span> <span class="nf">_get_bin_centers</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="n">result</span> <span class="o">=</span> <span class="p">[]</span>
+        <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">bin_list</span><span class="p">)</span><span class="o">-</span><span class="mi">1</span><span class="p">):</span>
+            <span class="n">result</span><span class="o">.</span><span class="n">append</span><span class="p">(((</span><span class="bp">self</span><span class="o">.</span><span class="n">bin_list</span><span class="p">[</span><span class="n">i</span> <span class="o">+</span> <span class="mi">1</span><span class="p">]</span> <span class="o">-</span> <span class="bp">self</span><span class="o">.</span><span class="n">bin_list</span><span class="p">[</span><span class="n">i</span><span class="p">])</span> <span class="o">/</span> <span class="mi">2</span><span class="p">)</span> <span class="o">+</span> <span class="bp">self</span><span class="o">.</span><span class="n">bin_list</span><span class="p">[</span><span class="n">i</span><span class="p">])</span>
+        <span class="k">return</span> <span class="n">result</span>
+
+    <span class="k">def</span> <span class="nf">_get_col_names</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="n">new_col_names</span> <span class="o">=</span> <span class="p">[]</span>
+        <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">bin_list</span><span class="p">)</span> <span class="o">-</span> <span class="mi">1</span><span class="p">):</span>
+            <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">useLog10</span><span class="p">:</span>
+                <span class="n">new_col_names</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="s1">&#39;</span><span class="si">%.2f</span><span class="s1"> - </span><span class="si">%.2f</span><span class="s1">&#39;</span> <span class="o">%</span> <span class="p">(</span><span class="nb">pow</span><span class="p">(</span><span class="mi">10</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">bin_list</span><span class="p">[</span><span class="n">i</span><span class="p">]),</span> <span class="p">(</span><span class="nb">pow</span><span class="p">(</span><span class="mi">10</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">bin_list</span><span class="p">[</span><span class="n">i</span> <span class="o">+</span> <span class="mi">1</span><span class="p">]))))</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="n">new_col_names</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="s1">&#39;</span><span class="si">%.2f</span><span class="s1"> - </span><span class="si">%.2f</span><span class="s1">&#39;</span> <span class="o">%</span> <span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">bin_list</span><span class="p">[</span><span class="n">i</span><span class="p">],</span> <span class="bp">self</span><span class="o">.</span><span class="n">bin_list</span><span class="p">[</span><span class="n">i</span> <span class="o">+</span> <span class="mi">1</span><span class="p">]))</span>
+        <span class="k">return</span> <span class="n">new_col_names</span>
+
+    <span class="k">def</span> <span class="nf">_check_col_name</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">column_name</span><span class="p">):</span>
+        <span class="n">n</span> <span class="o">=</span> <span class="mi">0</span>
+        <span class="n">col_name_new</span> <span class="o">=</span> <span class="n">column_name</span>
+        <span class="k">while</span> <span class="n">col_name_new</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">hist_dict</span><span class="o">.</span><span class="n">keys</span><span class="p">():</span>
+            <span class="n">n</span> <span class="o">+=</span> <span class="mi">1</span>
+            <span class="n">col_name_new</span> <span class="o">=</span> <span class="s1">&#39;</span><span class="si">%s</span><span class="s1"> (</span><span class="si">%d</span><span class="s1">)&#39;</span> <span class="o">%</span> <span class="p">(</span><span class="n">column_name</span><span class="p">,</span> <span class="n">n</span><span class="p">)</span>
+        <span class="k">return</span> <span class="n">col_name_new</span>
+
+    <span class="k">def</span> <span class="nf">_get_min_value</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">min_value</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">min_value</span>
+        <span class="k">return</span> <span class="nb">min</span><span class="p">([</span><span class="n">table</span><span class="o">.</span><span class="n">select</span><span class="p">(</span><span class="n">F</span><span class="o">.</span><span class="n">min</span><span class="p">(</span><span class="n">F</span><span class="o">.</span><span class="n">col</span><span class="p">(</span><span class="n">col_name</span><span class="p">)))</span><span class="o">.</span><span class="n">collect</span><span class="p">()[</span><span class="mi">0</span><span class="p">][</span><span class="mi">0</span><span class="p">]</span>
+                    <span class="k">for</span> <span class="n">table</span><span class="p">,</span> <span class="n">col_name</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">col_list</span><span class="p">])</span>
+
+    <span class="k">def</span> <span class="nf">_get_max_value</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">max_value</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">max_value</span>
+        <span class="k">return</span> <span class="nb">max</span><span class="p">([</span><span class="n">table</span><span class="o">.</span><span class="n">select</span><span class="p">(</span><span class="n">F</span><span class="o">.</span><span class="n">max</span><span class="p">(</span><span class="n">F</span><span class="o">.</span><span class="n">col</span><span class="p">(</span><span class="n">col_name</span><span class="p">)))</span><span class="o">.</span><span class="n">collect</span><span class="p">()[</span><span class="mi">0</span><span class="p">][</span><span class="mi">0</span><span class="p">]</span>
+                    <span class="k">for</span> <span class="n">table</span><span class="p">,</span> <span class="n">col_name</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">col_list</span><span class="p">])</span>
+
+    <span class="k">def</span> <span class="nf">_calculate_bins</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">bin_list</span><span class="p">)</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">:</span>
+            <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">bin_list</span>
+
+        <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">bin_list</span><span class="p">)</span> <span class="o">==</span> <span class="mi">0</span> <span class="ow">and</span> <span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">col_list</span><span class="p">)</span> <span class="o">==</span> <span class="mi">1</span> \
+                <span class="ow">and</span> <span class="bp">self</span><span class="o">.</span><span class="n">min_value</span> <span class="ow">is</span> <span class="kc">None</span> <span class="ow">and</span> <span class="bp">self</span><span class="o">.</span><span class="n">max_value</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="c1"># Only use the amount of bins as input For the histogram function</span>
+            <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">nr_bins</span>
+
+        <span class="n">min_value</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_get_min_value</span><span class="p">()</span>
+        <span class="n">max_value</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_get_max_value</span><span class="p">()</span>
+        <span class="n">step</span> <span class="o">=</span> <span class="p">(</span><span class="nb">float</span><span class="p">(</span><span class="n">max_value</span><span class="p">)</span> <span class="o">-</span> <span class="nb">float</span><span class="p">(</span><span class="n">min_value</span><span class="p">))</span> <span class="o">/</span> <span class="bp">self</span><span class="o">.</span><span class="n">nr_bins</span>
+        <span class="k">return</span> <span class="p">[</span><span class="n">min_value</span> <span class="o">+</span> <span class="p">(</span><span class="n">step</span> <span class="o">*</span> <span class="nb">float</span><span class="p">(</span><span class="n">bn_nr</span><span class="p">))</span> <span class="k">for</span> <span class="n">bn_nr</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">nr_bins</span> <span class="o">+</span> <span class="mi">1</span><span class="p">)]</span>
+
+    <span class="k">def</span> <span class="nf">_add_hist</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">table</span><span class="p">,</span> <span class="n">column_name</span><span class="p">):</span>
+        <span class="c1"># Uses spark to calculate the hist values</span>
+        <span class="n">hist</span> <span class="o">=</span> <span class="n">table</span><span class="o">.</span><span class="n">select</span><span class="p">(</span><span class="n">column_name</span><span class="p">)</span><span class="o">.</span><span class="n">rdd</span><span class="o">.</span><span class="n">flatMap</span><span class="p">(</span><span class="k">lambda</span> <span class="n">x</span><span class="p">:</span> <span class="n">x</span><span class="p">)</span><span class="o">.</span><span class="n">histogram</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">bin_list</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">hist_dict</span><span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">_check_col_name</span><span class="p">(</span><span class="n">column_name</span><span class="p">)]</span> <span class="o">=</span> <span class="n">hist</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span>
+
+        <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">bin_list</span><span class="p">,</span> <span class="nb">int</span><span class="p">):</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">bin_list</span> <span class="o">=</span> <span class="n">hist</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
+
+    <span class="nd">@staticmethod</span>
+    <span class="k">def</span> <span class="nf">_convert_number_bmk</span><span class="p">(</span><span class="n">axis_value</span><span class="p">,</span> <span class="n">_</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;Converts the values on axes to Billions, Millions or Thousands&quot;&quot;&quot;</span>
+        <span class="k">if</span> <span class="n">axis_value</span> <span class="o">&gt;=</span> <span class="mf">1e9</span><span class="p">:</span>
+            <span class="k">return</span> <span class="s1">&#39;</span><span class="si">{:1.1f}</span><span class="s1">B&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">axis_value</span> <span class="o">*</span> <span class="mf">1e-9</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">axis_value</span> <span class="o">&gt;=</span> <span class="mf">1e6</span><span class="p">:</span>
+            <span class="k">return</span> <span class="s1">&#39;</span><span class="si">{:1.1f}</span><span class="s1">M&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">axis_value</span> <span class="o">*</span> <span class="mf">1e-6</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">axis_value</span> <span class="o">&gt;=</span> <span class="mf">1e3</span><span class="p">:</span>
+            <span class="k">return</span> <span class="s1">&#39;</span><span class="si">{:1.1f}</span><span class="s1">K&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">axis_value</span> <span class="o">*</span> <span class="mf">1e-3</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">axis_value</span> <span class="o">&gt;=</span> <span class="mi">1</span> <span class="ow">or</span> <span class="n">axis_value</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span>
+            <span class="k">return</span> <span class="s1">&#39;</span><span class="si">{:1.0f}</span><span class="s1">&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">axis_value</span><span class="p">)</span>
+        <span class="k">return</span> <span class="n">axis_value</span>
+
+    <span class="k">def</span> <span class="nf">build</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;Calculates the histogram values for each of the columns.</span>
+
+<span class="sd">        If the Histogram has already been build, it doesn&#39;t build it again.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="bp">self</span><span class="o">.</span><span class="n">is_build</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">bin_list</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_calculate_bins</span><span class="p">()</span>
+            <span class="k">for</span> <span class="n">table</span><span class="p">,</span> <span class="n">column_name</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">col_list</span><span class="p">:</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">_add_hist</span><span class="p">(</span><span class="n">table</span><span class="p">,</span> <span class="n">column_name</span><span class="p">)</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">is_build</span> <span class="o">=</span> <span class="kc">True</span>
+
+    <span class="k">def</span> <span class="nf">to_pandas</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">kind</span><span class="o">=</span><span class="s1">&#39;hist&#39;</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;Returns a pandas dataframe from the Histogram object.</span>
+
+<span class="sd">        This function calculates the Histogram function in Spark if it was not done yet.</span>
+
+<span class="sd">        Args:</span>
+<span class="sd">            kind (:obj:`str`, optional): &#39;hist&#39; or &#39;density&#39;. When using hist this returns the histogram object</span>
+<span class="sd">            as pandas dataframe. When using density the index contains the bin centers, and the values in the</span>
+<span class="sd">            dataframe are the scaled values. Defaults to &#39;hist&#39;</span>
+
+<span class="sd">        Returns:</span>
+<span class="sd">            A pandas DataFrame from the Histogram object.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">build</span><span class="p">()</span>
+        <span class="k">if</span> <span class="n">kind</span> <span class="o">==</span> <span class="s1">&#39;hist&#39;</span><span class="p">:</span>
+            <span class="k">return</span> <span class="n">pd</span><span class="o">.</span><span class="n">DataFrame</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">hist_dict</span><span class="p">)</span><span class="o">.</span><span class="n">set_index</span><span class="p">([</span><span class="bp">self</span><span class="o">.</span><span class="n">_get_col_names</span><span class="p">()])</span>
+        <span class="k">elif</span> <span class="n">kind</span> <span class="o">==</span> <span class="s1">&#39;density&#39;</span><span class="p">:</span>
+            <span class="n">result</span> <span class="o">=</span> <span class="n">pd</span><span class="o">.</span><span class="n">DataFrame</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">hist_dict</span><span class="p">)</span><span class="o">.</span><span class="n">set_index</span><span class="p">([</span><span class="bp">self</span><span class="o">.</span><span class="n">_get_bin_centers</span><span class="p">()])</span>
+            <span class="k">return</span> <span class="n">result</span><span class="o">.</span><span class="n">apply</span><span class="p">(</span><span class="k">lambda</span> <span class="n">x</span><span class="p">:</span> <span class="n">x</span> <span class="o">/</span> <span class="n">x</span><span class="o">.</span><span class="n">max</span><span class="p">(),</span> <span class="n">axis</span><span class="o">=</span><span class="mi">0</span><span class="p">)</span>
+
+    <span class="k">def</span> <span class="nf">plot_hist</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">ax</span><span class="p">,</span> <span class="n">overlapping</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span> <span class="n">formatted_yaxis</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;Returns a matplotlib style histogram (matplotlib.pyplot.hist)</span>
+
+<span class="sd">        Uses the matplotlib object oriented interface to add a Histogram to an matplotlib Axes object.</span>
+<span class="sd">        All named arguments from pyplot.hist can be used. A new argument called &quot;type&quot; makes it possible to</span>
+<span class="sd">        make overlapping histogram plots.</span>
+
+<span class="sd">        Args:</span>
+<span class="sd">            ax (:obj:`Axes`): An matplotlib Axes object on which the histogram will be plot</span>
+<span class="sd">            overlapping (:obj:`bool`, optional): If set to true, this will generate an overlapping plot.</span>
+<span class="sd">            When set to False it will generate a normal grouped histogram. Defaults to False.</span>
+<span class="sd">            formatted_yaxis (:obj:`bool`, optional). If set to true, the numbers on the yaxis will be formatted</span>
+<span class="sd">            for better readability. E.g. 1500000 will become 1.5M. Defaults to True</span>
+<span class="sd">            **kwargs: The keyword arguments as used in matplotlib.pyplot.hist</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">build</span><span class="p">()</span>
+
+        <span class="k">if</span> <span class="n">formatted_yaxis</span><span class="p">:</span>
+            <span class="c1"># Round the y-axis value to nearest thousand, million, or billion for readable y-axis</span>
+            <span class="n">formatter</span> <span class="o">=</span> <span class="n">plt</span><span class="o">.</span><span class="n">FuncFormatter</span><span class="p">(</span><span class="n">Histogram</span><span class="o">.</span><span class="n">_convert_number_bmk</span><span class="p">)</span>
+            <span class="n">ax</span><span class="o">.</span><span class="n">yaxis</span><span class="o">.</span><span class="n">set_major_formatter</span><span class="p">(</span><span class="n">formatter</span><span class="p">)</span>
+
+        <span class="k">if</span> <span class="n">overlapping</span><span class="p">:</span>
+            <span class="k">for</span> <span class="n">colname</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">hist_dict</span><span class="p">:</span>
+                <span class="n">ax</span><span class="o">.</span><span class="n">hist</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_get_bin_centers</span><span class="p">(),</span>
+                        <span class="n">bins</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">bin_list</span><span class="p">,</span>
+                        <span class="n">alpha</span><span class="o">=</span><span class="mf">0.5</span><span class="p">,</span>
+                        <span class="n">label</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">hist_dict</span><span class="o">.</span><span class="n">keys</span><span class="p">(),</span>
+                        <span class="n">weights</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">hist_dict</span><span class="p">[</span><span class="n">colname</span><span class="p">],</span>
+                        <span class="o">**</span><span class="n">kwargs</span>
+                        <span class="p">)</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">weights_multi</span> <span class="o">=</span> <span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">hist_dict</span><span class="p">[</span><span class="n">colname</span><span class="p">]</span> <span class="k">for</span> <span class="n">colname</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">hist_dict</span><span class="p">]</span>
+            <span class="k">return</span> <span class="n">ax</span><span class="o">.</span><span class="n">hist</span><span class="p">([</span><span class="bp">self</span><span class="o">.</span><span class="n">_get_bin_centers</span><span class="p">()]</span> <span class="o">*</span> <span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">hist_dict</span><span class="p">),</span>
+                           <span class="n">bins</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">bin_list</span><span class="p">,</span>
+                           <span class="n">weights</span><span class="o">=</span><span class="n">weights_multi</span><span class="p">,</span>
+                           <span class="n">label</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">hist_dict</span><span class="o">.</span><span class="n">keys</span><span class="p">(),</span>
+                           <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span>
+    
+    <span class="k">def</span> <span class="nf">plot_density</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">ax</span><span class="p">,</span> <span class="n">num</span><span class="o">=</span><span class="mi">300</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;Returns a density plot on an Pyplot Axes object.</span>
+
+<span class="sd">        Args:</span>
+<span class="sd">            ax (:obj:`Axes`): An matplotlib Axes object on which the histogram will be plot</span>
+<span class="sd">            num (:obj:`int`): The number of x values the line is plotted on. Default: 300</span>
+<span class="sd">            **kwargs: Keyword arguments that are passed on to the pyplot.plot function.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">colors</span> <span class="o">=</span> <span class="p">[]</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">build</span><span class="p">()</span>
+        <span class="n">bin_centers</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">asarray</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_get_bin_centers</span><span class="p">())</span>
+        <span class="n">x_new</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">linspace</span><span class="p">(</span><span class="n">bin_centers</span><span class="o">.</span><span class="n">min</span><span class="p">(),</span> <span class="n">bin_centers</span><span class="o">.</span><span class="n">max</span><span class="p">(),</span> <span class="n">num</span><span class="p">)</span>
+
+        <span class="k">if</span> <span class="s1">&#39;color&#39;</span> <span class="ow">in</span> <span class="n">kwargs</span><span class="p">:</span>
+            <span class="n">colors</span> <span class="o">=</span> <span class="n">kwargs</span><span class="p">[</span><span class="s1">&#39;color&#39;</span><span class="p">]</span>
+            <span class="k">del</span> <span class="n">kwargs</span><span class="p">[</span><span class="s1">&#39;color&#39;</span><span class="p">]</span>
+
+        <span class="n">power_smooth</span> <span class="o">=</span> <span class="p">[]</span>
+
+        <span class="k">for</span> <span class="p">(</span><span class="n">colname</span><span class="p">,</span> <span class="n">bin_values</span><span class="p">)</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">hist_dict</span><span class="o">.</span><span class="n">items</span><span class="p">():</span>
+            <span class="n">normed_values</span><span class="p">,</span> <span class="n">ble</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">histogram</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_get_bin_centers</span><span class="p">(),</span>
+                                              <span class="n">bins</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">bin_list</span><span class="p">,</span>
+                                              <span class="n">weights</span><span class="o">=</span><span class="n">bin_values</span><span class="p">,</span>
+                                              <span class="n">normed</span><span class="o">=</span><span class="kc">True</span>
+                                              <span class="p">)</span>
+
+            <span class="n">power_smooth</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">x_new</span><span class="p">)</span>
+            <span class="n">power_smooth</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">spline</span><span class="p">(</span><span class="n">bin_centers</span><span class="p">,</span> <span class="n">normed_values</span><span class="p">,</span> <span class="n">x_new</span><span class="p">))</span>
+
+        <span class="n">lines</span> <span class="o">=</span> <span class="n">ax</span><span class="o">.</span><span class="n">plot</span><span class="p">(</span><span class="o">*</span><span class="n">power_smooth</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span>
+
+        <span class="k">for</span> <span class="n">i</span><span class="p">,</span> <span class="n">line</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="n">lines</span><span class="p">):</span>
+            <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">colors</span><span class="p">)</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">:</span>
+                <span class="n">plt</span><span class="o">.</span><span class="n">setp</span><span class="p">(</span><span class="n">line</span><span class="p">,</span> <span class="n">color</span><span class="o">=</span><span class="n">colors</span><span class="p">[</span><span class="n">i</span><span class="p">],</span> <span class="n">label</span><span class="o">=</span><span class="nb">list</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">hist_dict</span><span class="o">.</span><span class="n">keys</span><span class="p">())[</span><span class="n">i</span><span class="p">])</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="n">plt</span><span class="o">.</span><span class="n">setp</span><span class="p">(</span><span class="n">line</span><span class="p">,</span> <span class="n">label</span><span class="o">=</span><span class="nb">list</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">hist_dict</span><span class="o">.</span><span class="n">keys</span><span class="p">())[</span><span class="n">i</span><span class="p">])</span>
+
+        <span class="k">return</span> <span class="n">lines</span>
+
+    <span class="k">def</span> <span class="nf">add_data</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">data</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;Ads 1 or more columns to a histogram</span>
+
+<span class="sd">        Multiple options are available:</span>
+<span class="sd">        * Add a single column dataframe</span>
+<span class="sd">        * Add a list of single column dataframes</span>
+<span class="sd">        * Add a dataframe with multiple columns</span>
+
+<span class="sd">        Args:</span>
+<span class="sd">            (:obj:`Data`): A single column Spark dataframe, a list of single column Spark</span>
+<span class="sd">            dataframes, or a multi column Spark dataframe.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">data</span><span class="p">,</span> <span class="nb">list</span><span class="p">):</span>
+            <span class="k">for</span> <span class="n">df_column</span> <span class="ow">in</span> <span class="n">data</span><span class="p">:</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">add_column</span><span class="p">(</span><span class="n">df_column</span><span class="p">)</span>
+
+        <span class="k">elif</span> <span class="nb">len</span><span class="p">(</span><span class="n">data</span><span class="o">.</span><span class="n">columns</span><span class="p">)</span> <span class="o">&gt;</span> <span class="mi">1</span><span class="p">:</span>
+            <span class="k">for</span> <span class="n">col_name</span> <span class="ow">in</span> <span class="n">data</span><span class="o">.</span><span class="n">columns</span><span class="p">:</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">add_column</span><span class="p">(</span><span class="n">data</span><span class="o">.</span><span class="n">select</span><span class="p">(</span><span class="n">col_name</span><span class="p">))</span>
+
+        <span class="k">else</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">add_column</span><span class="p">(</span><span class="n">data</span><span class="p">)</span></div>
+</pre></div>
+
+          </div>
+        </div>
+      </div>
+      <div class="sphinxsidebar" role="navigation" aria-label="main navigation">
+        <div class="sphinxsidebarwrapper"><div class="relations">
+<h3>Related Topics</h3>
+<ul>
+  <li><a href="../../index.html">Documentation overview</a><ul>
+  <li><a href="../index.html">Module code</a><ul>
+  </ul></li>
+  </ul></li>
+</ul>
+</div>
+<div id="searchbox" style="display: none" role="search">
+  <h3>Quick search</h3>
+    <form class="search" action="../../search.html" method="get">
+      <div><input type="text" name="q" /></div>
+      <div><input type="submit" value="Go" /></div>
+      <input type="hidden" name="check_keywords" value="yes" />
+      <input type="hidden" name="area" value="default" />
+    </form>
+</div>
+<script type="text/javascript">$('#searchbox').show(0);</script>
+        </div>
+      </div>
+      <div class="clearer"></div>
+    </div>
+    <div class="footer">
+      &copy;2017, Chris van den Berg.
+      
+      |
+      Powered by <a href="http://sphinx-doc.org/">Sphinx 1.5.6</a>
+      &amp; <a href="https://github.com/bitprophet/alabaster">Alabaster 0.7.10</a>
+      
+    </div>
+
+    
+
+    
+  </body>
+</html>
