@@ -23,6 +23,8 @@ Indices and tables
 Documentation for the Code
 **************************
 .. automodule:: pyspark_dist_explore
-   :members:
+   :members: hist, distplot, pandas_histogram
+
 
 .. autoclass:: Histogram
+   :members: add_data, add_column, build, to_pandas, plot_hist, plot_density
