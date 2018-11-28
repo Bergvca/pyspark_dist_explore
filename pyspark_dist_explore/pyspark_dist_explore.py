@@ -11,7 +11,8 @@ import pandas as pd
 import numpy as np
 
 import matplotlib.pyplot as plt
-
+from matplotlib.cbook import silent_list
+from matplotlib.patches import Rectangle
 
 def hist(axis, x, overlapping=False, formatted_yaxis=True, **kwargs):
     """Plots a histogram on an Axis object
@@ -81,7 +82,13 @@ def distplot(axis, x, **kwargs):
     histogram = create_histogram_object(kwargs)
     histogram.add_data(x)
     n, bins, patches = histogram.plot_hist(axis, normed=True, **kwargs)
-    colors = [patch[0].get_facecolor() for patch in patches]
+    if type(patches) is silent_list:
+        colors = [patch.get_facecolor() for patch in patches]
+    elif type(patches) is Rectangle:
+        colors = patches.get_facecolor()
+    else:
+        raise TypeError("Unexpected Patch Type. Expected Rectangle")
+
     histogram.plot_density(axis, color=colors)
     return n, bins, patches
 
