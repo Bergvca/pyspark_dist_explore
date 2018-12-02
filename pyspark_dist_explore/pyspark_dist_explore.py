@@ -11,8 +11,8 @@ import pandas as pd
 import numpy as np
 
 import matplotlib.pyplot as plt
-from matplotlib.cbook import silent_list
 from matplotlib.patches import Rectangle
+
 
 def hist(axis, x, overlapping=False, formatted_yaxis=True, **kwargs):
     """Plots a histogram on an Axis object
@@ -82,10 +82,14 @@ def distplot(axis, x, **kwargs):
     histogram = create_histogram_object(kwargs)
     histogram.add_data(x)
     n, bins, patches = histogram.plot_hist(axis, normed=True, **kwargs)
-    if type(patches) is silent_list:
-        colors = [patch.get_facecolor() for patch in patches]
-    elif type(patches) is Rectangle:
-        colors = patches.get_facecolor()
+
+    # If working with a list of DataFrames as input, patches will be a list of lists with Rectangle objects
+    # We will get the color of the first Rectangle object. If there is only one DataFrame patches is a single list
+    # Of Rectangle objects
+    if type(x) == list and len(x) > 1:
+        colors = [patch[0].get_facecolor() for patch in patches]
+    elif type(patches[0]) is Rectangle:
+        colors = [patches[0].get_facecolor()]
     else:
         raise TypeError("Unexpected Patch Type. Expected Rectangle")
 
