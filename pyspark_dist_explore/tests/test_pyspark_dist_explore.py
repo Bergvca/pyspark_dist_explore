@@ -1,5 +1,5 @@
 import findspark
-findspark.init('/usr/lib/spark')
+findspark.init('/media/chris/data/spark-2.4.0-bin-hadoop2.7/')
 
 import pyspark.sql.functions as F
 import sparktestingbase.sqltestcase
