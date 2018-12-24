@@ -81,7 +81,7 @@ def distplot(axis, x, **kwargs):
     """
     histogram = create_histogram_object(kwargs)
     histogram.add_data(x)
-    n, bins, patches = histogram.plot_hist(axis, normed=True, **kwargs)
+    n, bins, patches = histogram.plot_hist(axis, density=True, **kwargs)
 
     # If working with a list of DataFrames as input, patches will be a list of lists with Rectangle objects
     # We will get the color of the first Rectangle object. If there is only one DataFrame patches is a single list
@@ -371,7 +371,7 @@ class Histogram(object):
             normed_values, ble = np.histogram(self._get_bin_centers(),
                                               bins=self.bin_list,
                                               weights=bin_values,
-                                              normed=True
+                                              density=True
                                               )
 
             power_smooth.append(x_new)
