@@ -136,7 +136,7 @@ def create_histogram_object(kwargs):
 
     if 'range' in kwargs:
         range = kwargs['range']
-        del kwargs[range]
+        del kwargs['range']
 
     return Histogram(bins=bins, range=range)
 
