@@ -4,13 +4,14 @@ findspark.init('/media/chris/data/spark-2.4.0-bin-hadoop2.7/')
 import pyspark.sql.functions as F
 import sparktestingbase.sqltestcase
 import pandas as pd
-
+import unittest
 from pyspark.sql import Row
-
 from unittest import mock
+
 import sys
 sys.path.append('../' )
 from pyspark_dist_explore import Histogram
+from pyspark_dist_explore.pyspark_dist_explore import create_histogram_object
 
 
 class HistogramTest(sparktestingbase.sqltestcase.SQLTestCase):
@@ -244,3 +245,24 @@ class HistogramTest(sparktestingbase.sqltestcase.SQLTestCase):
         hist = Histogram()
         hist.add_data(test_df)
         self.assertEqual(2, len(hist.col_list))
+
+
+class FunctionsTest(unittest.TestCase):
+    def test_create_histogram_object_default(self):
+        """Should return an histogram object with default settings"""
+        test_hist = create_histogram_object(dict())
+        self.assertEqual(10, test_hist.nr_bins)
+        self.assertIsNone(test_hist.min_value)
+        self.assertIsNone(test_hist.max_value)
+
+    def test_create_histogram_object_non_default(self):
+        """Should return an histogram object with 'bins' and 'range' set"""
+        test_kwargs = dict(bins=11, range=(10, 20))
+        test_hist = create_histogram_object(test_kwargs)
+        self.assertEqual(11, test_hist.nr_bins)
+        self.assertEqual(10, test_hist.min_value)
+        self.assertEqual(20, test_hist.max_value)
+
+
+if __name__ == "__main__":
+    unittest.main()
