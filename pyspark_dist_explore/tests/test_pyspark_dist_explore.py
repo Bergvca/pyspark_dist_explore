@@ -5,6 +5,7 @@ import pyspark.sql.functions as F
 import sparktestingbase.sqltestcase
 import pandas as pd
 import unittest
+import math
 from pyspark.sql import Row
 from unittest import mock
 
@@ -174,6 +175,22 @@ class HistogramTest(sparktestingbase.sqltestcase.SQLTestCase):
         hist._add_hist(column_to_ad_2, 'value')
         self.assertEqual(2, len(hist.hist_dict))
         self.assertTrue('value (1)' in hist.hist_dict)
+
+    def test_add_hist_single_value(self):
+        """Should set the bin list to n (self.nr_bins) bins (n+1 bin borders) where the min bin border is the
+        single value -0.5 and the max bin border is the single value +0.5 incase a column is input with only a
+        single value"""
+        single_column_value = 1
+        nr_bins = 5
+        column_values = [single_column_value] * 100
+        test_df = self.sqlCtx.createDataFrame(pd.DataFrame({'foo': column_values}))
+        hist = Histogram(bins=nr_bins)
+        hist.add_column(test_df.select(F.col('foo')))
+        hist.build()
+        self.assertEqual(6, len(hist.bin_list))
+        self.assertEqual(single_column_value - 0.5, min(hist.bin_list))
+        self.assertEqual(single_column_value + 0.5, max(hist.bin_list))
+        self.assertEqual(len(column_values), hist.hist_dict['foo'][math.floor(nr_bins/2)])
 
     def test_build(self):
         """Should calculate the bin list, and hist values for each column in the Histogram, if the

@@ -245,16 +245,48 @@ class Histogram(object):
 
         min_value = self._get_min_value()
         max_value = self._get_max_value()
-        step = (float(max_value) - float(min_value)) / self.nr_bins
-        return [min_value + (step * float(bn_nr)) for bn_nr in range(self.nr_bins + 1)]
+
+        # expand empty range to avoid empty graph
+        return Histogram._calc_n_bins_between(min_value, max_value, self.nr_bins)
+
+    @staticmethod
+    def _calc_n_bins_between(min_value, max_value, nr_bins):
+        """Returns a list of bin borders between min_value and max_value"""
+        if min_value == max_value:
+            min_value = min_value - 0.5
+            max_value = max_value + 0.5
+        step = (float(max_value) - float(min_value)) / nr_bins
+        return [min_value + (step * float(bn_nr)) for bn_nr in range(nr_bins + 1)]
+
+    @staticmethod
+    def _calc_weights(bins, value, value_count):
+        """Calculate weights given a bin list, value within that bin list and a count"""
+        # first we get a list of bin boundary tuples
+        weights = list()
+        bin_boundary_idx = [(idx, idx+2) for idx in range(len(bins)-1)]
+        bin_boundaries = [tuple(bins[left_idx:right_idx]) for (left_idx, right_idx) in bin_boundary_idx]
+        for left_boundary, right_boundary in bin_boundaries:
+            if left_boundary <= value < right_boundary:
+                weights.append(value_count[0])
+            else:
+                weights.append(0)
+        return weights
 
     def _add_hist(self, table, column_name):
-        # Uses spark to calculate the hist values
-        hist = table.select(column_name).rdd.flatMap(lambda x: x).histogram(self.bin_list)
-        self.hist_dict[self._check_col_name(column_name)] = hist[1]
+        """Uses spark to calculate the hist values: for each column a list of weights, and if the bin_list is not set
+           a set of bin boundaries"""
+        bin_boundaries, bin_weights = table.select(column_name).rdd.flatMap(lambda x: x).histogram(self.bin_list)
+        self.hist_dict[self._check_col_name(column_name)] = bin_weights
 
-        if isinstance(self.bin_list, int):
-            self.bin_list = hist[0]
+        if isinstance(self.bin_list, int): # the bin_list is not set
+            if len(bin_boundaries) == 2 and bin_boundaries[0] == bin_boundaries[1]:
+                # In case of a column with 1 unique value we need to calculate the histogram ourselves.
+                min_value = bin_boundaries[0]
+                max_value = bin_boundaries[1]
+                self.bin_list = self._calc_n_bins_between(min_value, max_value, self.nr_bins)
+                self.hist_dict[column_name] = Histogram._calc_weights(self.bin_list, min_value, bin_weights)
+            else:
+                self.bin_list = bin_boundaries
 
     @staticmethod
     def _convert_number_bmk(axis_value, _):
@@ -317,7 +349,7 @@ class Histogram(object):
             :formatted_yaxis: (`bool`, optional).
                 If set to true, the numbers on the yaxis will be formatted
                 for better readability. E.g. 1500000 will become 1.5M. Defaults to True
-            :\*\*kwargs:
+            :**kwargs:
                 The keyword arguments as used in matplotlib.pyplot.hist
         """
         self.build()
