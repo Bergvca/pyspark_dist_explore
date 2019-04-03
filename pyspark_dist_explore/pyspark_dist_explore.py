@@ -249,6 +249,22 @@ class Histogram(object):
         # expand empty range to avoid empty graph
         return Histogram._calc_n_bins_between(min_value, max_value, self.nr_bins)
 
+    def _add_hist(self, table, column_name):
+        """Uses spark to calculate the hist values: for each column a list of weights, and if the bin_list is not set
+           a set of bin boundaries"""
+        bin_boundaries, bin_weights = table.select(column_name).rdd.flatMap(lambda x: x).histogram(self.bin_list)
+        self.hist_dict[self._check_col_name(column_name)] = bin_weights
+
+        if isinstance(self.bin_list, int): # the bin_list is not set
+            if len(bin_boundaries) == 2 and bin_boundaries[0] == bin_boundaries[1]:
+                # In case of a column with 1 unique value we need to calculate the histogram ourselves.
+                min_value = bin_boundaries[0]
+                max_value = bin_boundaries[1]
+                self.bin_list = self._calc_n_bins_between(min_value, max_value, self.nr_bins)
+                self.hist_dict[column_name] = Histogram._calc_weights(self.bin_list, min_value, bin_weights)
+            else:
+                self.bin_list = bin_boundaries
+
     @staticmethod
     def _calc_n_bins_between(min_value, max_value, nr_bins):
         """Returns a list of bin borders between min_value and max_value"""
@@ -272,21 +288,6 @@ class Histogram(object):
                 weights.append(0)
         return weights
 
-    def _add_hist(self, table, column_name):
-        """Uses spark to calculate the hist values: for each column a list of weights, and if the bin_list is not set
-           a set of bin boundaries"""
-        bin_boundaries, bin_weights = table.select(column_name).rdd.flatMap(lambda x: x).histogram(self.bin_list)
-        self.hist_dict[self._check_col_name(column_name)] = bin_weights
-
-        if isinstance(self.bin_list, int): # the bin_list is not set
-            if len(bin_boundaries) == 2 and bin_boundaries[0] == bin_boundaries[1]:
-                # In case of a column with 1 unique value we need to calculate the histogram ourselves.
-                min_value = bin_boundaries[0]
-                max_value = bin_boundaries[1]
-                self.bin_list = self._calc_n_bins_between(min_value, max_value, self.nr_bins)
-                self.hist_dict[column_name] = Histogram._calc_weights(self.bin_list, min_value, bin_weights)
-            else:
-                self.bin_list = bin_boundaries
 
     @staticmethod
     def _convert_number_bmk(axis_value, _):
