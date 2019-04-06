@@ -2,7 +2,7 @@ from setuptools import setup
 
 setup(
     name='pyspark_dist_explore',
-    version='0.1.6',
+    version='0.1.7',
     packages=['pyspark_dist_explore'],
     license='MIT License',
     description='Create histogram and density plots from PySpark Dataframes',
