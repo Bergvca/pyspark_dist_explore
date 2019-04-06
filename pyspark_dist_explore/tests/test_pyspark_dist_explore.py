@@ -22,7 +22,7 @@ class HistogramTest(sparktestingbase.sqltestcase.SQLTestCase):
         self.assertIsNone(hist.min_value)
         self.assertIsNone(hist.max_value)
         self.assertEqual(10, hist.nr_bins)
-        self.assertEqual(0, len(hist.bin_list))
+        self.assertEqual(0, len(hist.bin_boundaries))
         self.assertEqual(0, len(hist.hist_dict))
         self.assertEqual(0, len(hist.col_list))
         self.assertFalse(hist.is_build)
@@ -33,13 +33,13 @@ class HistogramTest(sparktestingbase.sqltestcase.SQLTestCase):
         self.assertEqual(10, hist.nr_bins)
         self.assertEqual(5, hist.min_value)
         self.assertEqual(8, hist.max_value)
-        self.assertEqual(0, len(hist.bin_list))
+        self.assertEqual(0, len(hist.bin_boundaries))
 
     def test_init_bins_given(self):
         """"Should set the list of bins when given in the constructor,
         bins are converted to float"""
         hist = Histogram(bins=[1, 2, '3'])
-        self.assertListEqual([1, 2, 3], hist.bin_list)
+        self.assertListEqual([1, 2, 3], hist.bin_boundaries)
 
     def create_test_df(self):
         test_list = [(1, 2), (2, 3), (3, 4)]
@@ -133,7 +133,7 @@ class HistogramTest(sparktestingbase.sqltestcase.SQLTestCase):
         test_df = self.create_test_df()
         column_to_ad = test_df.select(F.col('value'))
         hist.add_column(column_to_ad)
-        hist.bin_list = hist._calculate_bins()
+        hist.bin_boundaries = hist._calculate_bins()
         hist._add_hist(column_to_ad, 'value')
         self.assertEqual(1, len(hist.hist_dict))
         self.assertListEqual([1, 2], hist.hist_dict['value'])
@@ -144,9 +144,9 @@ class HistogramTest(sparktestingbase.sqltestcase.SQLTestCase):
         test_df = self.create_test_df()
         column_to_ad = test_df.select(F.col('value'))
         hist.add_column(column_to_ad)
-        hist.bin_list = hist._calculate_bins()
+        hist.bin_boundaries = hist._calculate_bins()
         hist._add_hist(column_to_ad, 'value')
-        self.assertEqual(3, len(hist.bin_list))
+        self.assertEqual(3, len(hist.bin_boundaries))
 
     def test_add_hist_multiple_column(self):
         """Should add a second list of bin values to the hist_dict"""
@@ -156,7 +156,7 @@ class HistogramTest(sparktestingbase.sqltestcase.SQLTestCase):
         column_to_ad_2 = test_df.select(F.col('value2'))
         hist.add_column(column_to_ad)
         hist.add_column(column_to_ad_2)
-        hist.bin_list = hist._calculate_bins()
+        hist.bin_boundaries = hist._calculate_bins()
         hist._add_hist(column_to_ad, 'value')
         hist._add_hist(column_to_ad_2, 'value2')
         self.assertEqual(2, len(hist.hist_dict))
@@ -170,7 +170,7 @@ class HistogramTest(sparktestingbase.sqltestcase.SQLTestCase):
         column_to_ad_2 = test_df.select(F.col('value'))
         hist.add_column(column_to_ad)
         hist.add_column(column_to_ad_2)
-        hist.bin_list = hist._calculate_bins()
+        hist.bin_boundaries = hist._calculate_bins()
         hist._add_hist(column_to_ad, 'value')
         hist._add_hist(column_to_ad_2, 'value')
         self.assertEqual(2, len(hist.hist_dict))
@@ -187,9 +187,9 @@ class HistogramTest(sparktestingbase.sqltestcase.SQLTestCase):
         hist = Histogram(bins=nr_bins)
         hist.add_column(test_df.select(F.col('foo')))
         hist.build()
-        self.assertEqual(6, len(hist.bin_list))
-        self.assertEqual(single_column_value - 0.5, min(hist.bin_list))
-        self.assertEqual(single_column_value + 0.5, max(hist.bin_list))
+        self.assertEqual(6, len(hist.bin_boundaries))
+        self.assertEqual(single_column_value - 0.5, min(hist.bin_boundaries))
+        self.assertEqual(single_column_value + 0.5, max(hist.bin_boundaries))
         self.assertEqual(len(column_values), hist.hist_dict['foo'][math.floor(nr_bins/2)])
 
     def test_build(self):
@@ -202,7 +202,7 @@ class HistogramTest(sparktestingbase.sqltestcase.SQLTestCase):
         hist.add_column(column_to_ad)
         hist.add_column(column_to_ad_2)
         hist.build()
-        self.assertEqual(3, len(hist.bin_list))
+        self.assertEqual(3, len(hist.bin_boundaries))
         self.assertEqual(2, len(hist.hist_dict))
         self.assertTrue(hist.is_build)
 
