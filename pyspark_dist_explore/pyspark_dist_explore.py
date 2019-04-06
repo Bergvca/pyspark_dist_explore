@@ -165,7 +165,7 @@ class Histogram(object):
     def __init__(self, bins=10, range=None):
         self.col_list = []
         self.bin_boundaries = []
-        self.hist_dict = {}
+        self.hist_dict = {}  # column names: bin weight lists pairs
         self.nr_bins = None
         self.min_value = None
         self.max_value = None
