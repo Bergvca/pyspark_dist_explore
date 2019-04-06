@@ -164,15 +164,15 @@ class Histogram(object):
     """
     def __init__(self, bins=10, range=None):
         self.col_list = []
-        self.bin_list = []
-        self.hist_dict = {}
+        self.bin_boundaries = []
+        self.hist_dict = {}  # column names: bin weight lists pairs
         self.nr_bins = None
         self.min_value = None
         self.max_value = None
         self.is_build = False
 
         if isinstance(bins, list):
-            self.bin_list = [float(bin_border) for bin_border in bins]
+            self.bin_boundaries = [float(bin_border) for bin_border in bins]
         else:
             self.nr_bins = bins
 
@@ -204,14 +204,14 @@ class Histogram(object):
 
     def _get_bin_centers(self):
         result = []
-        for i in range(len(self.bin_list)-1):
-            result.append(((self.bin_list[i + 1] - self.bin_list[i]) / 2) + self.bin_list[i])
+        for i in range(len(self.bin_boundaries) - 1):
+            result.append(((self.bin_boundaries[i + 1] - self.bin_boundaries[i]) / 2) + self.bin_boundaries[i])
         return result
 
     def _get_col_names(self):
         new_col_names = []
-        for i in range(len(self.bin_list) - 1):
-            new_col_names.append('%.2f - %.2f' % (self.bin_list[i], self.bin_list[i + 1]))
+        for i in range(len(self.bin_boundaries) - 1):
+            new_col_names.append('%.2f - %.2f' % (self.bin_boundaries[i], self.bin_boundaries[i + 1]))
         return new_col_names
 
     def _check_col_name(self, column_name):
@@ -235,26 +235,59 @@ class Histogram(object):
                     for table, col_name in self.col_list])
 
     def _calculate_bins(self):
-        if len(self.bin_list) > 0:
-            return self.bin_list
+        if len(self.bin_boundaries) > 0:
+            return self.bin_boundaries
 
-        if len(self.bin_list) == 0 and len(self.col_list) == 1 \
+        if len(self.bin_boundaries) == 0 and len(self.col_list) == 1 \
                 and self.min_value is None and self.max_value is None:
             # Only use the amount of bins as input For the histogram function
             return self.nr_bins
 
         min_value = self._get_min_value()
         max_value = self._get_max_value()
-        step = (float(max_value) - float(min_value)) / self.nr_bins
-        return [min_value + (step * float(bn_nr)) for bn_nr in range(self.nr_bins + 1)]
+
+        # expand empty range to avoid empty graph
+        return Histogram._calc_n_bins_between(min_value, max_value, self.nr_bins)
 
     def _add_hist(self, table, column_name):
-        # Uses spark to calculate the hist values
-        hist = table.select(column_name).rdd.flatMap(lambda x: x).histogram(self.bin_list)
-        self.hist_dict[self._check_col_name(column_name)] = hist[1]
+        """Uses spark to calculate the hist values: for each column a list of weights, and if the bin_list is not set
+           a set of bin boundaries"""
+        bin_boundaries, bin_weights = table.select(column_name).rdd.flatMap(lambda x: x).histogram(self.bin_boundaries)
+        self.hist_dict[self._check_col_name(column_name)] = bin_weights
 
-        if isinstance(self.bin_list, int):
-            self.bin_list = hist[0]
+        if isinstance(self.bin_boundaries, int): # the bin_list is not set
+            if len(bin_boundaries) == 2 and bin_boundaries[0] == bin_boundaries[1]:
+                # In case of a column with 1 unique value we need to calculate the histogram ourselves.
+                min_value = bin_boundaries[0]
+                max_value = bin_boundaries[1]
+                self.bin_boundaries = self._calc_n_bins_between(min_value, max_value, self.nr_bins)
+                self.hist_dict[column_name] = Histogram._calc_weights(self.bin_boundaries, min_value, bin_weights)
+            else:
+                self.bin_boundaries = bin_boundaries
+
+    @staticmethod
+    def _calc_n_bins_between(min_value, max_value, nr_bins):
+        """Returns a list of bin borders between min_value and max_value"""
+        if min_value == max_value:
+            min_value = min_value - 0.5
+            max_value = max_value + 0.5
+        step = (float(max_value) - float(min_value)) / nr_bins
+        return [min_value + (step * float(bn_nr)) for bn_nr in range(nr_bins + 1)]
+
+    @staticmethod
+    def _calc_weights(bins, value, value_count):
+        """Calculate weights given a bin list, value within that bin list and a count"""
+        # first we get a list of bin boundary tuples
+        weights = list()
+        bin_boundary_idx = [(idx, idx+2) for idx in range(len(bins)-1)]
+        bin_boundaries = [tuple(bins[left_idx:right_idx]) for (left_idx, right_idx) in bin_boundary_idx]
+        for left_boundary, right_boundary in bin_boundaries:
+            if left_boundary <= value < right_boundary:
+                weights.append(value_count[0])
+            else:
+                weights.append(0)
+        return weights
+
 
     @staticmethod
     def _convert_number_bmk(axis_value, _):
@@ -275,7 +308,7 @@ class Histogram(object):
         If the Histogram has already been build, it doesn't build it again.
         """
         if not self.is_build:
-            self.bin_list = self._calculate_bins()
+            self.bin_boundaries = self._calculate_bins()
             for table, column_name in self.col_list:
                 self._add_hist(table, column_name)
             self.is_build = True
@@ -317,7 +350,7 @@ class Histogram(object):
             :formatted_yaxis: (`bool`, optional).
                 If set to true, the numbers on the yaxis will be formatted
                 for better readability. E.g. 1500000 will become 1.5M. Defaults to True
-            :\*\*kwargs:
+            :**kwargs:
                 The keyword arguments as used in matplotlib.pyplot.hist
         """
         self.build()
@@ -330,7 +363,7 @@ class Histogram(object):
         if overlapping:
             for colname in self.hist_dict:
                 ax.hist(self._get_bin_centers(),
-                        bins=self.bin_list,
+                        bins=self.bin_boundaries,
                         alpha=0.5,
                         label=self.hist_dict.keys(),
                         weights=self.hist_dict[colname],
@@ -339,7 +372,7 @@ class Histogram(object):
         else:
             weights_multi = [self.hist_dict[colname] for colname in self.hist_dict]
             return ax.hist([self._get_bin_centers()] * len(self.hist_dict),
-                           bins=self.bin_list,
+                           bins=self.bin_boundaries,
                            weights=weights_multi,
                            label=self.hist_dict.keys(),
                            **kwargs)
@@ -369,7 +402,7 @@ class Histogram(object):
 
         for (colname, bin_values) in self.hist_dict.items():
             normed_values, ble = np.histogram(self._get_bin_centers(),
-                                              bins=self.bin_list,
+                                              bins=self.bin_boundaries,
                                               weights=bin_values,
                                               density=True
                                               )
