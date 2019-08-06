@@ -1,4 +1,7 @@
-from scipy.interpolate import spline
+try:
+    from scipy.interpolate import spline
+except:
+    from scipy.interpolate import UnivariateSpline as spline
 
 try:
     from pyspark.sql.types import NumericType
