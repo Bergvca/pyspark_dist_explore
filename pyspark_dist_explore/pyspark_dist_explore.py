@@ -1,4 +1,4 @@
-from scipy.interpolate import spline
+from scipy.interpolate import UnivariateSpline
 
 try:
     from pyspark.sql.types import NumericType
@@ -408,7 +408,7 @@ class Histogram(object):
                                               )
 
             power_smooth.append(x_new)
-            power_smooth.append(spline(bin_centers, normed_values, x_new))
+            power_smooth.append(UnivariateSpline(bin_centers, normed_values, x_new))
 
         lines = ax.plot(*power_smooth, **kwargs)
 
