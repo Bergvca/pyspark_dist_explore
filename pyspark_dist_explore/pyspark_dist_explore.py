@@ -1,4 +1,4 @@
-from scipy.interpolate import UnivariateSpline
+from scipy.interpolate import interp1d
 
 try:
     from pyspark.sql.types import NumericType
@@ -128,17 +128,17 @@ def pandas_histogram(x, bins=10, range=None):
 
 def create_histogram_object(kwargs):
     bins = 10
-    range = None
+    b_range = None
 
     if 'bins' in kwargs:
         bins = kwargs['bins']
         del kwargs['bins']
 
     if 'range' in kwargs:
-        range = kwargs['range']
+        b_range = kwargs['range']
         del kwargs['range']
 
-    return Histogram(bins=bins, range=range)
+    return Histogram(bins=bins, range=b_range)
 
 
 class Histogram(object):
@@ -255,7 +255,7 @@ class Histogram(object):
         bin_boundaries, bin_weights = table.select(column_name).rdd.flatMap(lambda x: x).histogram(self.bin_boundaries)
         self.hist_dict[self._check_col_name(column_name)] = bin_weights
 
-        if isinstance(self.bin_boundaries, int): # the bin_list is not set
+        if isinstance(self.bin_boundaries, int):  # the bin_list is not set
             if len(bin_boundaries) == 2 and bin_boundaries[0] == bin_boundaries[1]:
                 # In case of a column with 1 unique value we need to calculate the histogram ourselves.
                 min_value = bin_boundaries[0]
@@ -287,7 +287,6 @@ class Histogram(object):
             else:
                 weights.append(0)
         return weights
-
 
     @staticmethod
     def _convert_number_bmk(axis_value, _):
@@ -406,9 +405,10 @@ class Histogram(object):
                                               weights=bin_values,
                                               density=True
                                               )
+            interpolation_function = interp1d(bin_centers, normed_values, kind='quadratic')
 
             power_smooth.append(x_new)
-            power_smooth.append(UnivariateSpline(bin_centers, normed_values, x_new))
+            power_smooth.append(interpolation_function(x_new))
 
         lines = ax.plot(*power_smooth, **kwargs)
 
